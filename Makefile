@@ -23,6 +23,7 @@ export VERBOSE = 1
 export TESTCODE = 1
 # Compile support code for MC input data
 export MCDATA = 1
+export SIDIS = 1
 
 #export I387MATH = 1
 export EXTRAWARN = 1
@@ -122,6 +123,10 @@ DEFINES      += -DTESTCODE
 endif
 ifdef MCDATA
 DEFINES      += -DMCDATA
+endif
+
+ifdef SIDIS
+DEFINES      += -DSIDIS
 endif
 
 CXXFLAGS     += $(DEFINES) $(ROOTCFLAGS) $(ROOTCFLAGS) $(PKGINCLUDES)

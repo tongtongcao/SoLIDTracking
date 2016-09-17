@@ -5,7 +5,8 @@
 
 //ROOT
 #include "TMath.h"
-
+#include "TVector2.h"
+#include "TVector3.h"
 //SoLIDTracking
 #include "SoLIDECal.h"
 #include "SoLIDTrackerSystem.h"
@@ -86,7 +87,7 @@ Int_t SoLIDECal::Decode(const THaEvData& evdata)
               laecEdp.push_back(datx.f);
               break;
             case kFAECPos:
-              SmearPosition(&datx.f, &daty.f);
+              SmearPosition(&datx.f, &daty.f, kFAECPos);
               faecXPos.push_back(datx.f);
               faecYPos.push_back(daty.f);
               break;
@@ -159,6 +160,9 @@ Int_t SoLIDECal::ReadDatabase( const TDatime& date )
   fFAECZ = 0;
   fPosReso = -1.;//m
   fEReso = -1.;
+  fMRPCPitchWidth = -1.;
+  fMRPCNSectors = -1;
+  fMRPCPhiCover = 0.;
   vector<Int_t>* laec_detmap_pos = 0;
   vector<Int_t>* laec_detmap_edp = 0;
   vector<Int_t>* faec_detmap_pos = 0;
@@ -177,6 +181,10 @@ Int_t SoLIDECal::ReadDatabase( const TDatime& date )
          { "faec_z",               &fFAECZ,           kDouble,  0, 1 },
          { "ec_pos_reso",          &fPosReso,         kDouble,  0, 1 },
          { "ec_energy_reso",       &fEReso,           kDouble,  0, 1 },
+	 { "mrpc_pitch_width",     &fMRPCPitchWidth,  kDouble,  0, 1 },
+         { "mrpc_n_sectors",       &fMRPCNSectors,    kInt, 1, 1},
+         { "mrpc_phi_reso",        &fMRPCPhiReso,     kDouble,  0, 1 },
+	 { "mrpc_rmin",            &fMRPCRmin,        kDouble,  0, 1 },
          { 0 }
        };
    status = LoadDB( file, date, request, fPrefix );
@@ -219,6 +227,8 @@ Int_t SoLIDECal::ReadDatabase( const TDatime& date )
       return kInitError;
     }
   }
+
+  fMRPCPhiCover = 2.*TMath::Pi() / fMRPCNSectors;
   
   fIsInit = kTRUE;
   return kOK;
@@ -232,10 +242,44 @@ Int_t SoLIDECal::DefineVariables( EMode mode )
   return kOK;
 }
 //___________________________________________________________________________________________________
-inline void SoLIDECal::SmearPosition(Float_t *x, Float_t *y)
+void SoLIDECal::SmearPosition(Float_t *x, Float_t *y, Int_t mode)
 {
+#ifdef SIDIS
+  //only in SIDIS forward angle, whre ec hit position will be replaced by hit on MRPC
+  if (mode == kFAECPos){
+    //if FAEC, use hit on MRPC to replace hit on EC
+    
+    //which MRPC sector
+    //assume the first sector is centered at 0 deg
+    double phi = atan2(*y, *x) + fMRPCPhiCover/2.;
+    phi = TVector2::Phi_0_2pi(phi);
+    int sector = (int)(phi / fMRPCPhiCover);
+    assert(sector < fMRPCNSectors);
+    
+    double phiCenter = sector*fMRPCPhiCover;
+    
+    //rotate to the frame that with x-axis parallel to the symmetric axis of the sector
+
+    double tmpx = cos(-1.*phiCenter)*(*x) + -1.*sin(-1.*phiCenter)*(*y);
+    double tmpy = sin(-1.*phiCenter)*(*x) +     cos(-1.*phiCenter)*(*y);
+
+    assert(tmpx > fMRPCRmin - 0.01); //should not happen
+
+    int ipitch = (tmpx - fMRPCRmin)/fMRPCPitchWidth;
+    tmpx  = fMRPCRmin + (ipitch + 0.5)*fMRPCPitchWidth; //using the pitch center
+    tmpy += gRandom->Gaus(0., fMRPCPhiReso);
+
+    //rotate back to the lab frame
+    *x = cos(phiCenter)*tmpx + -1.*sin(phiCenter)*tmpy;
+    *y = sin(phiCenter)*tmpx +     cos(phiCenter)*tmpy;
+    
+    return; //no need to continue
+  }
+#endif
+  
   *x += gRandom->Gaus(0, fPosReso);
   *y += gRandom->Gaus(0, fPosReso);
+  
 }
 //___________________________________________________________________________________________________
 inline void SoLIDECal::SmearEnergy(Float_t *energy)

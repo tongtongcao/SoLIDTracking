@@ -109,7 +109,7 @@ void SoLKalTrackFinder::ProcessHits(TClonesArray* theTracks)
 void SoLKalTrackFinder::FindDoubletSeed(Int_t planej, Int_t planek, ECType type)
 {
   double philimit[2] = {0};
-  double rlimit[2][2] = {0};
+  double rlimit[2][2] = {{0, 0}, {0, 0}};
   double deltar[2] = {0};
   double dphi, dr;
   SeedType seedType = kMidBack;
@@ -465,6 +465,7 @@ void SoLKalTrackFinder::TrackFollow()
     for (Int_t j=1; j!=thisSystem->GetLast()+1;j++){
       SoLIDGEMHit* thisHit = (SoLIDGEMHit*)((SoLKalTrackSite*)thisSystem->At(j))->GetHit();
       if (!dynamic_cast<SoLIDMCGEMHit*>(thisHit)->IsSignalHit()) allMC = false;
+      break;
     }
     if (allMC) fMcTrackEfficiency = true;
     //---------------------------------------------------//

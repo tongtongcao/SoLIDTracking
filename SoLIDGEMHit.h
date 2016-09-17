@@ -168,11 +168,7 @@ class SoLIDGEMReadOut;
     SoLIDGEMHit(chamberID, trackerID, r, phi, z, uhit, vhit) {};
     ~SoLIDMCGEMHit(){};
     
-    Int_t IsSignalHit() {
-      if (dynamic_cast<SoLIDMCRawHit*>(fUHit)->fMCTrack == 1 && 
-          dynamic_cast<SoLIDMCRawHit*>(fVHit)->fMCTrack == 1) return 1;
-      else return 0;
-    }
+    Int_t IsSignalHit(); 
     Double_t GetUPosMC() const { return dynamic_cast<SoLIDMCRawHit*>(fUHit)->fMCPos; }
     Double_t GetVPosMC() const { return dynamic_cast<SoLIDMCRawHit*>(fVHit)->fMCPos; }
     

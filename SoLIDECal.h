@@ -1,5 +1,8 @@
 #ifndef ROOT_SoLID_ECAL
 #define ROOT_SoLID_ECAL
+//temperory class to emulate the trigger information
+//should be replaced if more realistic simulation is ready
+
 //c++
 #include <map>
 #include <vector>
@@ -43,7 +46,7 @@ class SoLIDECal : public THaSubDetector
   inline Double_t GetPosReso() const { return fPosReso; }
   inline Double_t GetEReso() const { return fEReso; }
   
-  void    SmearPosition(Float_t *x, Float_t *y);
+  void    SmearPosition(Float_t *x, Float_t *y, Int_t mode = 0);
   void    SmearEnergy(Float_t *energy);
   protected:
   virtual Int_t     ReadDatabase( const TDatime& date );
@@ -59,6 +62,11 @@ class SoLIDECal : public THaSubDetector
   Double_t                        fFAECEdpCut;
   Double_t                        fPosReso;
   Double_t                        fEReso;
+  Double_t                        fMRPCPitchWidth;
+  Int_t                           fMRPCNSectors;
+  Double_t                        fMRPCPhiCover;
+  Double_t                        fMRPCPhiReso;
+  Double_t                        fMRPCRmin;
   map< Int_t, vector<Float_t> >   fLAECHitMap;
   map< Int_t, vector<Float_t> >   fFAECHitMap;
   

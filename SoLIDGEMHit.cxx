@@ -128,13 +128,13 @@ inline Int_t SoLIDGEMHit::Compare( const TObject* obj ) const
 #ifdef MCDATA
 //---------------------------- SoLIDGEMHit ------------------------------------//
 //______________________________________________________________________________
-/*SoLIDMCGEMHit::SoLIDMCGEMHit(Int_t chamberID, Double_t r, Double_t phi, Double_t z,
- SoLIDMCRawHit* uhit, SoLIDMCRawHit* vhit)
-:fChamberID(chamberID), fR(r), fPhi(phi), fZ(z), fUHit(uhit), fVHit(vhit)
+Int_t SoLIDMCGEMHit::IsSignalHit()
 {
-  fX = r*TMath::Cos(phi);
-  fY = r*TMath::Sin(phi);
-}*/
+  Int_t mctracku = dynamic_cast<SoLIDMCRawHit*>(fUHit)->fMCTrack;
+  Int_t mctrackv = dynamic_cast<SoLIDMCRawHit*>(fVHit)->fMCTrack;
+  if (mctracku > 0 && mctracku == mctrackv) return mctracku;
+  else return 0;
+}
 //_______________________________________________________________________________
 #endif
 
