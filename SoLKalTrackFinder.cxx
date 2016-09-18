@@ -111,7 +111,6 @@ void SoLKalTrackFinder::ProcessHits(TClonesArray* theTracks)
   FindandAddVertex();
   ECalFinalMatch();
   FinalSelection(theTracks);
-  cout<<"--------------"<<fEventNum<<"-------------------"<<endl; 
   fEventNum++;
 }
 
