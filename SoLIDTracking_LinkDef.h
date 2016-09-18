@@ -19,7 +19,6 @@
 #pragma link C++ class SoLIDRawHit+;
 #pragma link C++ class SoLIDGEMHit+;
 #pragma link C++ class SoLIDTrack+;
-#pragma link C++ class ProgressiveTracking+;
 #pragma link C++ class SoLIDFieldMap+;
 #pragma link C++ class SoLKalTrackFinder+;
 #pragma link C++ class SoLKalMatrix+;

@@ -399,7 +399,7 @@ Int_t SoLIDGEMReadOut::Decode( const THaEvData& evdata)
 	// lists of secondary particle numbers ... overkill for now
 	num_bg = TMath::Max( num_bg, mc.fContam );
 	// All primary particle hits in the cluster are from the same track
-	assert( mctrack == 0 || mc.fMCTrack == 0 || mctrack == mc.fMCTrack );
+	//assert( mctrack == 0 || mc.fMCTrack == 0 || mctrack == mc.fMCTrack );
 	if( mctrack == 0 ) {
 	  if( mc.fMCTrack > 0 ) {
 	    // If the cluster contains a signal hit, save its info and be done

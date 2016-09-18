@@ -37,17 +37,14 @@ class SoLKalTrackFinder
   void SetECalDetector(SoLIDECal* theECal) { fECal = theECal; }
   void ProcessHits(TClonesArray* theTracks);
   
-  void SetCaloHit(Double_t xpos, Double_t ypos, Int_t plane, Double_t edp){
-                  fCaloHits.push_back(SoLIDCaloHit(xpos, ypos, plane, edp)); 
-                 }
   void SetBPM(Double_t x, Double_t y);
   void CalCircle(Double_t x1,Double_t y1,Double_t x2,Double_t y2,Double_t x3,
                  Double_t y3, Double_t* R,Double_t* Xc, Double_t* Yc);
                            
   void Clear( Option_t* opt="" );
   int  GetNSeeds() const { return fNSeeds; }
-  bool GetSeedEfficiency() const { return fSeedEfficiency; }
-  bool GetMCTrackEfficiency() const { return fMcTrackEfficiency; }
+  bool GetSeedEfficiency(int i) const { return fSeedEfficiency[i]; }
+  bool GetMCTrackEfficiency(int i) const { return fMcTrackEfficiency[i]; }
 
   
   
@@ -104,11 +101,10 @@ class SoLKalTrackFinder
   std::vector<SoLIDGEMTracker*> fGEMTracker;
   SoLIDECal *fECal;
   int fNSeeds;
-  bool fSeedEfficiency;
-  bool fMcTrackEfficiency;
+  bool fSeedEfficiency[2];
+  bool fMcTrackEfficiency[2];
   Int_t fNTrackers;
   Int_t fEventNum;
-  vector<SoLIDCaloHit> fCaloHits;
   vector<SoLIDGEMHit*> fWindowHits;
   SoLKalFieldStepper* fFieldStepper;
   TClonesArray*      fCoarseTracks;
@@ -120,7 +116,8 @@ class SoLKalTrackFinder
   map< Int_t, vector<SoLIDGEMHit*> > fGoodHits;
   map< SeedType, vector<DoubletSeed> > fSeedPool;
   Int_t fNGoodTrack;
-  Double_t fChi2PerNDFCut;  
+  Double_t fChi2PerNDFCut;
+  vector<SoLIDCaloHit> * fCaloHits;  
 };
 
 #endif

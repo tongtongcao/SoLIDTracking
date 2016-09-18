@@ -2,7 +2,7 @@
 # Core library
 
 SRC  = SoLIDSpectrometer.cxx SoLIDTrackerSystem.cxx SoLIDGEMTracker.cxx SoLIDGEMChamber.cxx \
-       SoLIDGEMReadOut.cxx SoLIDGEMHit.cxx SoLIDTrack.cxx SoLIDECal.cxx ProgressiveTracking.cxx \
+       SoLIDGEMReadOut.cxx SoLIDGEMHit.cxx SoLIDTrack.cxx SoLIDECal.cxx \
        SoLIDFieldMap.cxx SoLKalTrackFinder.cxx SoLKalMatrix.cxx SoLKalTrackSystem.cxx \
        SoLKalTrackSite.cxx SoLKalTrackState.cxx SoLKalFieldStepper.cxx
 

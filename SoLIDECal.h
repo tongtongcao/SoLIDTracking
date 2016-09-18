@@ -38,8 +38,7 @@ class SoLIDECal : public THaSubDetector
   Bool_t  IsLAECTriggered() const { return fIsLAECTriggered; }
   UInt_t  GetNLAECHits()    const { return fNLAECHits; }
   UInt_t  GetNFAECHits()    const { return fNFAECHits; }
-  map< Int_t, vector<Float_t> > * GetLAECHits()  { return &fLAECHitMap; }
-  map< Int_t, vector<Float_t> > * GetFAECHits()  { return &fFAECHitMap; }                
+  vector<SoLIDCaloHit> * GetCaloHits()  { return &fCaloHits; }                
 
   inline Double_t GetECZ(ECType type) const { if (type == kFAEC) return fFAECZ;
                                               else return fLAECZ; }
@@ -67,8 +66,8 @@ class SoLIDECal : public THaSubDetector
   Double_t                        fMRPCPhiCover;
   Double_t                        fMRPCPhiReso;
   Double_t                        fMRPCRmin;
-  map< Int_t, vector<Float_t> >   fLAECHitMap;
-  map< Int_t, vector<Float_t> >   fFAECHitMap;
+  
+  vector<SoLIDCaloHit>            fCaloHits;
   
   ClassDef(SoLIDECal,0)
 };

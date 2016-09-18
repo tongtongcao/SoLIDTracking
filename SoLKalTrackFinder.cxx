@@ -16,7 +16,7 @@
 
 
 SoLKalTrackFinder::SoLKalTrackFinder(bool isMC, Int_t ntrackers)
-:fIsMC(isMC), fECal(nullptr), fNSeeds(0), fSeedEfficiency(false), fMcTrackEfficiency(false),
+:fIsMC(isMC), fECal(nullptr), fNSeeds(0),
  fNTrackers(ntrackers), fEventNum(0), fBPMX(0.), fBPMY(0.), fNGoodTrack(0), fChi2PerNDFCut(30.)
 {
   fGEMTracker.clear();
@@ -39,6 +39,11 @@ SoLKalTrackFinder::SoLKalTrackFinder(bool isMC, Int_t ntrackers)
   fSeedPool[kMidBack] = midBackSeed;
   fSeedPool[kFrontMid] = frontMidSeed;
   fSeedPool[kFrontBack] = frontBackSeed;
+
+  for (int i=0; i<2; i++) {
+   fSeedEfficiency[i] = false;
+   fMcTrackEfficiency[i] = false;
+  }
 }
 //__________________________________________________________________________
 SoLKalTrackFinder::~SoLKalTrackFinder()
@@ -56,12 +61,16 @@ void SoLKalTrackFinder::Clear( Option_t* opt )
   
   fCoarseTracks->Clear(opt);
   
-  fCaloHits.clear();
+  fCaloHits = nullptr;
   fNSeeds = 0;
   fNGoodTrack = 0;
-  fSeedEfficiency = false;
-  fMcTrackEfficiency = false;
-  
+ 
+  for (int i=0; i<2; i++) {
+   fSeedEfficiency[i] = false;
+   fMcTrackEfficiency[i] = false;
+  }
+
+ 
   map< Int_t, vector<SoLIDGEMHit*> >::iterator it;
   for (it = fGoodHits.begin(); it != fGoodHits.end(); it++) { (it->second).clear(); }
   fGoodHits.clear();
@@ -78,8 +87,9 @@ void SoLKalTrackFinder::SetGEMDetector(vector<SoLIDGEMTracker*> thetrackers)
 void SoLKalTrackFinder::ProcessHits(TClonesArray* theTracks)
 {
   if (fGEMTracker.size() == 0) return;
-  
   fNSeeds = 0;
+  assert(fCaloHits == nullptr);
+  fCaloHits = fECal->GetCaloHits();
   
   //forward angle seed finding
   FindDoubletSeed(4, 5, kFAEC);
@@ -101,7 +111,7 @@ void SoLKalTrackFinder::ProcessHits(TClonesArray* theTracks)
   FindandAddVertex();
   ECalFinalMatch();
   FinalSelection(theTracks);
-  
+  cout<<"--------------"<<fEventNum<<"-------------------"<<endl; 
   fEventNum++;
 }
 
@@ -169,6 +179,7 @@ void SoLKalTrackFinder::FindDoubletSeed(Int_t planej, Int_t planek, ECType type)
   
     for (int nhitk = 0; nhitk < planekHitArray->GetLast()+1; nhitk++){
       SoLIDGEMHit *hitk = (SoLIDGEMHit*)planekHitArray->At(nhitk);
+
       if (hitk->GetR() < rlimit[0][0]) continue;
       if (hitk->GetR() > rlimit[0][1]) break; // check if the hit is within r range
       if (!TriggerCheck(hitk, type)) continue;
@@ -181,6 +192,7 @@ void SoLKalTrackFinder::FindDoubletSeed(Int_t planej, Int_t planek, ECType type)
       
         for (int nhitj = 0; nhitj < planejHitArray->GetLast()+1; nhitj++){
           SoLIDGEMHit *hitj = (SoLIDGEMHit*)planejHitArray->At(nhitj);
+
           if (hitj->IsUsed()) continue;
           if (hitj->GetR()<rlimit[1][0]) continue; 
           if (hitj->GetR()>rlimit[1][1]) break;
@@ -228,19 +240,19 @@ void SoLKalTrackFinder::FindDoubletSeed(Int_t planej, Int_t planek, ECType type)
         
             fFieldStepper->PropagationClassicalRK4(initMomentum, initPosition, toZ, 
                                                charge, stepSize, finalMomentum, finalPosition);
-            for (UInt_t ec_count=0; ec_count<fCaloHits.size(); ec_count++){
-	            if (fCaloHits[ec_count].fECID != kFAEC) continue; //not FAEC hit
-	            if (sqrt( pow(finalPosition.X() - fCaloHits[ec_count].fXPos, 2) +  
-	                  pow(finalPosition.Y() - fCaloHits[ec_count].fYPos, 2) ) < 0.2 ) isSeed = true;
+            for (UInt_t ec_count=0; ec_count<fCaloHits->size(); ec_count++){
+	            if (fCaloHits->at(ec_count).fECID != kFAEC) continue; //not FAEC hit
+	            if (sqrt( pow(finalPosition.X() - fCaloHits->at(ec_count).fXPos, 2) +  
+	                  pow(finalPosition.Y() - fCaloHits->at(ec_count).fYPos, 2) ) < 0.2 ) isSeed = true;
 	          } 
 		      }
 		      else if (type == kLAEC){
             fFieldStepper->PropagationClassicalRK4(initMomentum, initPosition, toZ, 
                                                charge, stepSize, finalMomentum, finalPosition);
-            for (UInt_t ec_count=0; ec_count<fCaloHits.size(); ec_count++){
-	            if (fCaloHits[ec_count].fECID != kLAEC) continue; //not FAEC hit
-	            if (sqrt( pow(finalPosition.X() - fCaloHits[ec_count].fXPos, 2) +  
-	                  pow(finalPosition.Y() - fCaloHits[ec_count].fYPos, 2) ) < 0.06 ) isSeed = true;
+            for (UInt_t ec_count=0; ec_count<fCaloHits->size(); ec_count++){
+	            if (fCaloHits->at(ec_count).fECID != kLAEC) continue; //not FAEC hit
+	            if (sqrt( pow(finalPosition.X() - fCaloHits->at(ec_count).fXPos, 2) +  
+	                  pow(finalPosition.Y() - fCaloHits->at(ec_count).fYPos, 2) ) < 0.06 ) isSeed = true;
 	          } 
 		      }
 		      if (type == kFAEC && !isSeed) continue;
@@ -270,12 +282,12 @@ void SoLKalTrackFinder::FindDoubletSeed(Int_t planej, Int_t planek, ECType type)
             thisVector.push_back(DoubletSeed(seedType, hitj, hitk, initMom, initTheta, initPhi, charge, type));
             fSeedPool.insert(std::pair< SeedType, vector<DoubletSeed> >(seedType, thisVector));
           }
-          
-		      if (dynamic_cast<SoLIDMCGEMHit*>(hitj)->IsSignalHit() && 
-		        dynamic_cast<SoLIDMCGEMHit*>(hitk)->IsSignalHit() ){
-		          fSeedEfficiency = true;
-		      }
-		      
+
+          if (dynamic_cast<SoLIDMCGEMHit*>(hitj)->IsSignalHit() == 1 && dynamic_cast<SoLIDMCGEMHit*>(hitk)->IsSignalHit() == 1)
+          fSeedEfficiency[0] = true;
+
+          if (dynamic_cast<SoLIDMCGEMHit*>(hitj)->IsSignalHit() == 2 && dynamic_cast<SoLIDMCGEMHit*>(hitk)->IsSignalHit() == 2)
+          fSeedEfficiency[1] = true;
           
         }
       }
@@ -461,13 +473,14 @@ void SoLKalTrackFinder::TrackFollow()
       continue;
     }
     //------------check MC track efficiency--------------//
-    bool allMC = true;
+    bool allMC[2] = {true, true};
     for (Int_t j=1; j!=thisSystem->GetLast()+1;j++){
       SoLIDGEMHit* thisHit = (SoLIDGEMHit*)((SoLKalTrackSite*)thisSystem->At(j))->GetHit();
-      if (!dynamic_cast<SoLIDMCGEMHit*>(thisHit)->IsSignalHit()) allMC = false;
-      break;
+      if (dynamic_cast<SoLIDMCGEMHit*>(thisHit)->IsSignalHit() != 1) allMC[0] = false;
+      if (dynamic_cast<SoLIDMCGEMHit*>(thisHit)->IsSignalHit() != 2) allMC[1] = false;
     }
-    if (allMC) fMcTrackEfficiency = true;
+    if (allMC[0]) fMcTrackEfficiency[0] = true;
+    if (allMC[1]) fMcTrackEfficiency[1] = true;
     //---------------------------------------------------//
   }
 }
@@ -602,10 +615,10 @@ void SoLKalTrackFinder::ECalFinalMatch()
     SoLKalTrackState *predictState = currentState.PredictSVatNextZ(ecalZ);
     
     thisSystem->SetTrackStatus(kFALSE);
-    for (UInt_t ec_count=0; ec_count<fCaloHits.size(); ec_count++){
-	    if (fCaloHits.at(ec_count).fECID != thisSystem->GetAngleFlag()) continue;
-	    if ( fabs(fCaloHits.at(ec_count).fXPos - (*predictState)(kIdxX0, 0)) <5.*0.01 &&
-	         fabs(fCaloHits.at(ec_count).fYPos - (*predictState)(kIdxY0, 0)) <5.*0.01  ){
+    for (UInt_t ec_count=0; ec_count<fCaloHits->size(); ec_count++){
+	    if (fCaloHits->at(ec_count).fECID != thisSystem->GetAngleFlag()) continue;
+	    if ( fabs(fCaloHits->at(ec_count).fXPos - (*predictState)(kIdxX0, 0)) <5.*0.01 &&
+	         fabs(fCaloHits->at(ec_count).fYPos - (*predictState)(kIdxY0, 0)) <5.*0.01  ){
 	      
 	      //for large angle, require also that the momentum of the track needs to match the 
 	      //cluster energy. This is difficult to do for forward angle since we detect both hadron
@@ -614,13 +627,13 @@ void SoLKalTrackFinder::ECalFinalMatch()
 	      //and field integral to measure it
 	      Double_t momentum = thisSystem->GetCharge() / (*predictState)(kIdxQP, 0);
 	      if (thisSystem->GetAngleFlag() == kLAEC){
-	        if ( fabs( (momentum - fCaloHits.at(ec_count).fEdp) / momentum) > 0.5) continue;
+	        if ( fabs( (momentum - fCaloHits->at(ec_count).fEdp) / momentum) > 0.5) continue;
 	      }
 	      
 	      thisSystem->SetTrackStatus(kTRUE);
-	      thisSystem->fDeltaECX = fCaloHits.at(ec_count).fXPos - (*predictState)(kIdxX0, 0);
-	      thisSystem->fDeltaECY = fCaloHits.at(ec_count).fYPos - (*predictState)(kIdxY0, 0);
-	      thisSystem->fDeltaECE = (momentum - fCaloHits.at(ec_count).fEdp)/momentum;    
+	      thisSystem->fDeltaECX = fCaloHits->at(ec_count).fXPos - (*predictState)(kIdxX0, 0);
+	      thisSystem->fDeltaECY = fCaloHits->at(ec_count).fYPos - (*predictState)(kIdxY0, 0);
+	      thisSystem->fDeltaECE = (momentum - fCaloHits->at(ec_count).fEdp)/momentum;    
 	    }
 	  }
 	  
@@ -675,37 +688,33 @@ inline SoLKalTrackSite & SoLKalTrackFinder::SiteInitWithSeed(DoubletSeed* thisSe
 inline Bool_t SoLKalTrackFinder::TriggerCheck(SoLIDGEMHit *theHit, ECType type)
 {
   if (type == kLAEC){
-    for (UInt_t ec_count=0; ec_count<fCaloHits.size(); ec_count++){
-	    if (fCaloHits[ec_count].fECID != kLAEC) continue; //not LAEC hit
-	    Double_t ecHitPhi = TMath::ATan2(fCaloHits[ec_count].fYPos, fCaloHits[ec_count].fXPos);
-	    Double_t ecHitR = TMath::Sqrt( TMath::Power(fCaloHits[ec_count].fXPos, 2) + 
-	    			  	   TMath::Power(fCaloHits[ec_count].fYPos, 2) );
+    for (UInt_t ec_count=0; ec_count<fCaloHits->size(); ec_count++){
+	    if (fCaloHits->at(ec_count).fECID != kLAEC) continue; //not LAEC hit
+	    Double_t ecHitPhi = TMath::ATan2(fCaloHits->at(ec_count).fYPos, fCaloHits->at(ec_count).fXPos);
+	    Double_t ecHitR = TMath::Sqrt( TMath::Power(fCaloHits->at(ec_count).fXPos, 2) + 
+	    			  	   TMath::Power(fCaloHits->at(ec_count).fYPos, 2) );
 	    Double_t tmpDeltaPhi = CalDeltaPhi(ecHitPhi, theHit->GetPhi());
 	    Double_t tmpDeltaR   = CalDeltaR(ecHitR, theHit->GetR());
 	    if (theHit->GetTrackerID()==2 && (tmpDeltaPhi < 0.15 && tmpDeltaPhi > -0.05) && (tmpDeltaR < 0.286 && tmpDeltaR > 0.095)){
         return kTRUE;
      }else if (theHit->GetTrackerID()==3 && (tmpDeltaPhi<0.06 && tmpDeltaPhi>-0.06) && (tmpDeltaR<0.054 && tmpDeltaR > -0.039) ){
        return kTRUE;
-     }else{
-	     return kFALSE;
-	   }
+     }
 	  }
   }
   else if (type == kFAEC){
-    for (UInt_t ec_count=0; ec_count<fCaloHits.size(); ec_count++)
+    for (UInt_t ec_count=0; ec_count<fCaloHits->size(); ec_count++)
 	    {
-	      if (fCaloHits[ec_count].fECID != kFAEC) continue; //not FAEC hit
-	      Double_t ecHitPhi = TMath::ATan2(fCaloHits[ec_count].fYPos, fCaloHits[ec_count].fXPos);
-	      Double_t ecHitR = TMath::Sqrt( TMath::Power(fCaloHits[ec_count].fXPos, 2) + 
-				  	   TMath::Power(fCaloHits[ec_count].fYPos, 2) );
+	      if (fCaloHits->at(ec_count).fECID != kFAEC) continue; //not FAEC hit
+	      Double_t ecHitPhi = TMath::ATan2(fCaloHits->at(ec_count).fYPos, fCaloHits->at(ec_count).fXPos);
+	      Double_t ecHitR = TMath::Sqrt( TMath::Power(fCaloHits->at(ec_count).fXPos, 2) + 
+				  	   TMath::Power(fCaloHits->at(ec_count).fYPos, 2) );
 	      Double_t tmpDeltaPhi = CalDeltaPhi(ecHitPhi, theHit->GetPhi());
 	      Double_t tmpDeltaR   = CalDeltaR(ecHitR, theHit->GetR());
 	      if (theHit->GetTrackerID()==4 && (tmpDeltaPhi < 1.1 && tmpDeltaPhi > 0.04) && (tmpDeltaR < 1.11 && tmpDeltaR > 0.425)){
 	        return kTRUE;
 	      }else if (theHit->GetTrackerID()==5 && (tmpDeltaPhi<0.9 && tmpDeltaPhi>0.02) && (tmpDeltaR<0.88 && tmpDeltaR > 0.31) ){
 	        return kTRUE;
-	      }else{
-	        return kFALSE;
 	      }
 	    }
   }

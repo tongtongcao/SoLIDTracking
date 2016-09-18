@@ -28,17 +28,7 @@ void SoLIDECal::Clear(Option_t* opt)
   fNFAECHits = 0;
   fIsLAECTriggered = kFALSE;
   fIsFAECTriggered = kFALSE;
-  for ( map<Int_t, vector<Float_t> >::iterator it = fLAECHitMap.begin(); 
-  it != fLAECHitMap.end(); ++it ) {
-     (it->second).clear();
-  }
-  fLAECHitMap.clear();
-  
-  for ( map<Int_t, vector<Float_t> >::iterator it = fFAECHitMap.begin(); 
-  it != fFAECHitMap.end(); ++it ) {
-     (it->second).clear();
-  }
-  fFAECHitMap.clear();
+  fCaloHits.clear();
 }
 //________________________________________________________________________________________
 Int_t SoLIDECal::Decode(const THaEvData& evdata)
@@ -108,13 +98,11 @@ Int_t SoLIDECal::Decode(const THaEvData& evdata)
   fNLAECHits = laecXPos.size();
   fNFAECHits = faecXPos.size();
   
-  fLAECHitMap.insert(std::pair<Int_t, std::vector<Float_t> >(kECalXPos, laecXPos));
-  fLAECHitMap.insert(std::pair<Int_t, std::vector<Float_t> >(kECalYPos, laecYPos));
-  fLAECHitMap.insert(std::pair<Int_t, std::vector<Float_t> >(kECalEdp,  laecEdp));
-  
-  fFAECHitMap.insert(std::pair<Int_t, std::vector<Float_t> >(kECalXPos, faecXPos));
-  fFAECHitMap.insert(std::pair<Int_t, std::vector<Float_t> >(kECalYPos, faecYPos));
-  fFAECHitMap.insert(std::pair<Int_t, std::vector<Float_t> >(kECalEdp,  faecEdp));
+  for (unsigned int i=0; i<fNLAECHits; i++) fCaloHits.push_back(SoLIDCaloHit( laecXPos.at(i), laecYPos.at(i), 
+								     kLAEC,  laecEdp.at(i)));
+
+  for (unsigned int i=0; i<fNFAECHits; i++) fCaloHits.push_back(SoLIDCaloHit( faecXPos.at(i), faecYPos.at(i), 
+								     kFAEC,  faecEdp.at(i)));
   
   return kOK;
 }

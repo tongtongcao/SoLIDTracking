@@ -31,7 +31,6 @@
 //SoLID tracking
 #include "SoLIDGEMTracker.h"
 #include "SoLIDECal.h"
-#include "ProgressiveTracking.h"
 #include "SoLIDFieldMap.h"
 #include "SoLKalTrackFinder.h"
 
@@ -64,8 +63,10 @@ class SoLIDTrackerSystem : public THaTrackingDetector {
     Int_t   GetSystemID() const    { return fSystemID; }
     Int_t   GetNTracks()  const    { return fTracks->GetLast() + 1; }
     Int_t   GetNSeeds()   const    { return fTrackFinder->GetNSeeds(); }
-    bool    GetSeedEfficiency() const { return fTrackFinder->GetSeedEfficiency();} 
-    bool    GetMCTrackEfficiency() const { return fTrackFinder->GetMCTrackEfficiency();}  
+    bool    GetFirstSeedEfficiency() const { return fTrackFinder->GetSeedEfficiency(0);} 
+    bool    GetFirstMCTrackEfficiency() const { return fTrackFinder->GetMCTrackEfficiency(0);}
+    bool    GetSecondSeedEfficiency() const { return fTrackFinder->GetSeedEfficiency(1);}
+    bool    GetSecondMCTrackEfficiency() const { return fTrackFinder->GetMCTrackEfficiency(1);}  
  
     SoLIDGEMTracker * GetTracker(Int_t i) const {
       if (i >= 0 && i<fNTracker ) { return fGEMTracker[i]; }

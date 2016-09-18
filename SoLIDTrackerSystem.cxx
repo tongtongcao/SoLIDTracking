@@ -275,25 +275,8 @@ Int_t SoLIDTrackerSystem::CoarseTrack( TClonesArray& /*tracks*/ )
   fGoodSignalFlag = 0;
   Int_t signalCount[6] = {0}; //Temperory for checking
   
-  /*std::map<Int_t, std::vector<TSeqCollection*> > hitMap;
-  for (Int_t i=0; i<fNTracker; i++){
-    std::vector<TSeqCollection*> trackerHitArray;
-    for (Int_t j=0; j<fGEMTracker[i]->GetNChamber(); j++){
-      TSeqCollection* chamberHitArray = fGEMTracker[i]->GetChamber(j)->GetHits();
-      trackerHitArray.push_back(chamberHitArray);
-      //tmp for check
-      for (UInt_t k=0; k<chamberHitArray->GetLast()+1; k++){
-        if (dynamic_cast<SoLIDMCGEMHit*>(chamberHitArray->At(k))->IsSignalHit()) signalCount[i]++;
-      }
-      //-------------
-    }
-    hitMap.insert(std::pair<Int_t, vector<TSeqCollection*> >(i, trackerHitArray));
-  }*/
-  
-  //if (signalCount[0] == 1 && signalCount[1] ==1 && signalCount[2] == 1 && signalCount[3] == 1) fGoodSignalFlag = 1;
-  
   //check to see if there is any high energy hit on the calorimeters
-  if ( fECal->IsLAECTriggered() ){
+  /*if ( fECal->IsLAECTriggered() ){
     map<Int_t, vector<Float_t> > * thisECHitMap = fECal->GetLAECHits();
     vector<Float_t> * ecalXPos = &(thisECHitMap->find(kECalXPos)->second);
     vector<Float_t> * ecalYPos = &(thisECHitMap->find(kECalYPos)->second);
@@ -312,7 +295,7 @@ Int_t SoLIDTrackerSystem::CoarseTrack( TClonesArray& /*tracks*/ )
       fTrackFinder->SetCaloHit(ecalXPos->at(j), ecalYPos->at(j), 1, ecalEdp->at(j));
     }
      
-  }
+  }*/
   
   //getting the Beam spot, using MC info for now
 #ifdef MCDATA
@@ -473,8 +456,10 @@ Int_t SoLIDTrackerSystem::DefineVariables( EMode mode )
       { "track.ntrack",    "number of tracks for the event", "GetNTracks()"                          },
       { "track.goodsignal","1 if all GEMs have one hit from the signal", "fGoodSignalFlag"           },
       { "track.nseeds",    "number of seeds for tracking",   "GetNSeeds()"},
-      { "track.seedeffi",  "efficiency of seeding",          "GetSeedEfficiency()"},
-      { "track.trackeffi",  "efficiency of seeding",          "GetMCTrackEfficiency()"},
+      { "track.seedeffi1",  "efficiency of first seeding",          "GetFirstSeedEfficiency()"},
+      { "track.trackeffi1",  "efficiency of first seeding",          "GetFirstMCTrackEfficiency()"},
+      { "track.seedeffi2",  "efficiency of second seeding",          "GetSecondSeedEfficiency()"},
+      { "track.trackeffi2",  "efficiency of second seeding",          "GetSecondMCTrackEfficiency()"},
       { "track.chi2perndf", "chi2 per ndf",                  "fTracks.SoLIDMCTrack.GetChi2()"},
       { "track.p",              "momentum of the track",          "fTracks.SoLIDTrack.GetMomentum()"},
       { "track.theta",          "polar angle of the track",       "fTracks.SoLIDTrack.GetTheta()"},
