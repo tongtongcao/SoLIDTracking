@@ -3,8 +3,9 @@
 
 SRC  = SoLIDSpectrometer.cxx SoLIDTrackerSystem.cxx SoLIDGEMTracker.cxx SoLIDGEMChamber.cxx \
        SoLIDGEMReadOut.cxx SoLIDGEMHit.cxx SoLIDTrack.cxx SoLIDECal.cxx \
-       SoLIDFieldMap.cxx SoLKalTrackFinder.cxx SoLKalMatrix.cxx SoLKalTrackSystem.cxx \
-       SoLKalTrackSite.cxx SoLKalTrackState.cxx SoLKalFieldStepper.cxx
+       SoLIDFieldMap.cxx SIDISKalTrackFinder.cxx SoLKalMatrix.cxx SoLKalTrackSystem.cxx \
+       SoLKalTrackSite.cxx SoLKalTrackState.cxx SoLKalFieldStepper.cxx SoLKalTrackFinder.cxx \
+       PVDISKalTrackFinder.cxx
 
 EXTRAHDR = SoLIDUtility.h EProjType.h
 
@@ -24,6 +25,7 @@ export TESTCODE = 1
 # Compile support code for MC input data
 export MCDATA = 1
 export SIDIS = 1
+#export PVDIS = 1
 
 #export I387MATH = 1
 export EXTRAWARN = 1
@@ -127,6 +129,10 @@ endif
 
 ifdef SIDIS
 DEFINES      += -DSIDIS
+endif
+
+ifdef PVDIS
+DEFINES      += -DPVDIS
 endif
 
 CXXFLAGS     += $(DEFINES) $(ROOTCFLAGS) $(ROOTCFLAGS) $(PKGINCLUDES)

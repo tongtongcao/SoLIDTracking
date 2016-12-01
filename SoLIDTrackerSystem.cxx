@@ -28,6 +28,9 @@
 #include "SoLIDUtility.h"
 #include "SoLIDGEMHit.h"
 #include "SoLIDTrack.h"
+#include "SIDISKalTrackFinder.h"
+#include "PVDISKalTrackFinder.h"
+
 using namespace std;
 using namespace Podd;
 
@@ -39,8 +42,8 @@ typedef vector<vector<Int_t> >::iterator vviter_t;
 //typedef vector<Plane*>::size_type vrsiz_t;
 //_____________________________________________________________________________
 SoLIDTrackerSystem::SoLIDTrackerSystem( const char* name, const char* desc, THaApparatus* app)
-  :THaTrackingDetector(name,desc,app), fSystemID(-1), 
-   fPhi(0), fTracks(0), fCrateMap(0), fTrackFinder(0)
+  :THaTrackingDetector(name,desc,app), fSystemID(-1),
+   fPhi(0), fDetConf(0), fTracks(0), fCrateMap(0), fTrackFinder(0)
 #ifdef MCDATA
   , fMCDecoder(0), fChecked(false)
 #endif
@@ -63,7 +66,6 @@ SoLIDTrackerSystem::~SoLIDTrackerSystem()
   delete fTracks;
   delete fECal;
   delete fTrackFinder;
-  
 }
 //_____________________________________________________________________________
 Int_t SoLIDTrackerSystem::ReadDatabase(const TDatime& date)
@@ -80,7 +82,6 @@ Int_t SoLIDTrackerSystem::ReadDatabase(const TDatime& date)
   FILE* file = OpenFile( date );
   if( !file ) return kFileError;
 
-  
   fOrigin.SetXYZ(0,0,0);
   
   Int_t err = ReadGeometry( file, date );
@@ -95,13 +96,15 @@ Int_t SoLIDTrackerSystem::ReadDatabase(const TDatime& date)
 #ifdef MCDATA
   Int_t mc_data = 0;
 #endif
-  fNTracker = -1;
-  fChi2Cut  = -1;
+  fNTracker    = -1;
+  fChi2Cut     = -1;
   fNMaxMissHit = -1;
+  fDetConf     = -1;
   Int_t do_rawdecode = -1, do_coarsetrack = -1, do_finetrack = -1, do_chi2 = -1;
   assert( GetCrateMapDBcols() >= 5 );
   DBRequest request[] = {
     { "cratemap",          cmap,               kIntM,   GetCrateMapDBcols() },
+    { "detconf",           &fDetConf,          kInt,    0, 1 },
 #ifdef MCDATA
     { "MCdata",            &mc_data,           kInt,    0, 1 },
 #endif
@@ -114,10 +117,10 @@ Int_t SoLIDTrackerSystem::ReadDatabase(const TDatime& date)
     { "ntracker",          &fNTracker,         kInt,    0, 1 },
     { 0 }
   };
-  
+
   Int_t status = kInitError;
   err = LoadDB( file, date, request, fPrefix );
-  assert( fNTracker > 0 && fChi2Cut > 0 && fNMaxMissHit > 0);
+  assert( fNTracker > 0 && fChi2Cut > 0 && fNMaxMissHit > 0 && fDetConf >= 0);
   fclose(file);
   if( !err ) {
     if( cmap->empty() ) {
@@ -173,9 +176,9 @@ Int_t SoLIDTrackerSystem::ReadDatabase(const TDatime& date)
 	  TestBit(kDoCoarse), TestBit(kDoFine), TestBit(kDoChi2) );
 #endif
   }
- 
+
   fIsInit = kTRUE;
-  
+
   return kOK;
 }
 //_____________________________________________________________________________
@@ -183,7 +186,7 @@ void SoLIDTrackerSystem::Clear(Option_t* opt)
 {
   // Clear event-by-event data, including those of the planes and projections
   THaTrackingDetector::Clear(opt);
-  
+
   if( !opt or *opt != 'I' ) {
     for( Int_t i = 0; i < fNTracker; ++i ){
       fGEMTracker[i]->Clear(opt);
@@ -231,7 +234,7 @@ THaAnalysisObject::EStatus SoLIDTrackerSystem::Init( const TDatime& date )
       stringstream sn, sd;
       sn <<i;
       sd << "SoLID GEM tracker " << i;
-      SoLIDGEMTracker *theTracker = new SoLIDGEMTracker(i, sn.str().c_str(), 
+      SoLIDGEMTracker *theTracker = new SoLIDGEMTracker(i, sn.str().c_str(),
                                                       sd.str().c_str(), this);
       fGEMTracker.push_back(theTracker);
       status = fGEMTracker[i]->Init(date);
@@ -246,16 +249,21 @@ THaAnalysisObject::EStatus SoLIDTrackerSystem::Init( const TDatime& date )
       fECal = new SoLIDECal(sn.str().c_str(), sd.str().c_str(), this);
   }
   status = fECal->Init(date);
-  
+
   delete fCrateMap; fCrateMap = 0;
   if( status ){
   return fStatus = status;
   }
 
-  fTrackFinder = new SoLKalTrackFinder(TestBit(kMCData), fNTracker);
+  if (fDetConf == 0){
+    fTrackFinder = new SIDISKalTrackFinder(TestBit(kMCData));
+  }else if (fDetConf == 1){
+    fTrackFinder = new PVDISKalTrackFinder(TestBit(kMCData));
+  }
+
   fTrackFinder->SetGEMDetector(fGEMTracker);
   fTrackFinder->SetECalDetector(fECal);
-  
+
   return fStatus = kOK;
 }
 //_____________________________________________________________________________
@@ -269,12 +277,12 @@ Int_t SoLIDTrackerSystem::CoarseTrack( TClonesArray& /*tracks*/ )
      object (optional, may be done in the pattern recognition class) 
   */
   //static const char* const here = "SoLIDTrackerSystem::CoarseTrack";
-  
+
   //c++ map for storing pointers to the hit object array
-  if ( TestBit(kDoCoarse) ){  
-  fGoodSignalFlag = 0;
-  Int_t signalCount[6] = {0}; //Temperory for checking
-  
+  if ( TestBit(kDoCoarse) ){
+  //fGoodSignalFlag = 0;
+  //Int_t signalCount[6] = {0}; //Temperory for checking
+
   //check to see if there is any high energy hit on the calorimeters
   /*if ( fECal->IsLAECTriggered() ){
     map<Int_t, vector<Float_t> > * thisECHitMap = fECal->GetLAECHits();
@@ -294,9 +302,9 @@ Int_t SoLIDTrackerSystem::CoarseTrack( TClonesArray& /*tracks*/ )
     for (UInt_t j=0; j<ecalXPos->size(); j++){
       fTrackFinder->SetCaloHit(ecalXPos->at(j), ecalYPos->at(j), 1, ecalEdp->at(j));
     }
-     
+
   }*/
-  
+
   //getting the Beam spot, using MC info for now
 #ifdef MCDATA
   if( TestBit(kMCData) ) {
@@ -306,7 +314,7 @@ Int_t SoLIDTrackerSystem::CoarseTrack( TClonesArray& /*tracks*/ )
     fTrackFinder->SetBPM(trk->VX(), trk->VY());
   }
 #endif
-  
+
   //this is where the actual pattern recognition done
   fTrackFinder->ProcessHits(fTracks);
   }
@@ -512,17 +520,17 @@ void SoLIDTrackerSystem::PrintDataBase(Int_t level) const
   }
 }
 //_____________________________________________________________________________
-void SoLIDTrackerSystem::SetDebug( Int_t level )
+void SoLIDTrackerSystem::SetDebug( Int_t /*level*/ )
 {
-  
+
 }
 //_____________________________________________________________________________
-Int_t SoLIDTrackerSystem::Begin( THaRunBase* r)
+Int_t SoLIDTrackerSystem::Begin( THaRunBase* /*r*/)
 {
   return 0;
 }
 //_____________________________________________________________________________
-Int_t SoLIDTrackerSystem::End( THaRunBase* r )
+Int_t SoLIDTrackerSystem::End( THaRunBase* /*r*/ )
 {
   return 0;
 }
@@ -586,7 +594,7 @@ Int_t SoLIDTrackerSystem::ReadGeometry( FILE* file, const TDatime& date,
 
 #ifdef MCDATA
 //_____________________________________________________________________________
-Int_t SoLIDTrackerSystem::FitMCPoints( Podd::MCTrack* mctrk ) const
+Int_t SoLIDTrackerSystem::FitMCPoints( Podd::MCTrack* /*mctrk*/ ) const
 {
   return 1;
 }

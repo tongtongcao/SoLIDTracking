@@ -40,7 +40,7 @@ class SoLIDECal : public THaSubDetector
   UInt_t  GetNFAECHits()    const { return fNFAECHits; }
   vector<SoLIDCaloHit> * GetCaloHits()  { return &fCaloHits; }                
 
-  inline Double_t GetECZ(ECType type) const { if (type == kFAEC) return fFAECZ;
+  const Double_t & GetECZ(ECType type) const { if (type == kFAEC) return fFAECZ;
                                               else return fLAECZ; }
   inline Double_t GetPosReso() const { return fPosReso; }
   inline Double_t GetEReso() const { return fEReso; }
@@ -61,12 +61,13 @@ class SoLIDECal : public THaSubDetector
   Double_t                        fFAECEdpCut;
   Double_t                        fPosReso;
   Double_t                        fEReso;
+#ifdef SIDIS
   Double_t                        fMRPCPitchWidth;
   Int_t                           fMRPCNSectors;
   Double_t                        fMRPCPhiCover;
   Double_t                        fMRPCPhiReso;
   Double_t                        fMRPCRmin;
-  
+#endif
   vector<SoLIDCaloHit>            fCaloHits;
   
   ClassDef(SoLIDECal,0)

@@ -135,9 +135,12 @@ Int_t SoLIDGEMTracker::ReadDatabase( const TDatime& date )
   fDoCombineHits = -1;
   cout<<"Initializing GEM tracker "<<fTrackerID<<endl;
   const DBRequest request[] = {
-        { "nchamber",       &fNChamber,        kInt,     0, 1 },
-        { "tracker_z",      &fTrackerZ,        kDouble,  0, 1 },
-        { "combine_hits",   &fDoCombineHits,   kInt,     0, 1 },
+        { "nchamber",          &fNChamber,        kInt,     0, 1 },
+        { "tracker_z",         &fTrackerZ,        kDouble,  0, 1 },
+        { "combine_hits",      &fDoCombineHits,   kInt,     0, 1 },
+        { "kill_cross_talk",   &fKillCrossTalk,   kInt,     0, 1 },
+        { "cross_talk_thres",  &fCrossTalkThres,  kDouble,  0, 1 },
+        { "cross_strip_apart", &fCrossStripApart, kInt,     0, 1 },
         { 0 }
       };
   Int_t status = LoadDB( file, date, request, fPrefix );
@@ -213,7 +216,7 @@ Int_t SoLIDGEMTracker::CombineChamberHits()
 #endif
     }
     
-  } 
+  }
   return nTotalHits;
 }
 //_____________________________________________________________________________________________

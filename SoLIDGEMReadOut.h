@@ -75,6 +75,7 @@ class SoLIDGEMReadOut : public THaSubDetector{
   Int_t             MapChannel( Int_t idx ) const;
   void              AddStrip( Int_t istrip );
   void              UpdateOffset();
+  void              KillCrossTalk();
   
   Int_t             fReadOutID;       //0 means u and 1 means v   
   //for database
@@ -99,6 +100,10 @@ class SoLIDGEMReadOut : public THaSubDetector{
   Int_t             fNStrip;          // total number of strips on this readout
   Vflt_t            fPed;             // pedestal for each channal
   Int_t             fDeconMode;       // 1 if the APV25 chip is in the deconvolution mode
+  Int_t             fKillCrossTalk;   // 1 to apply cross talk signal elimination algorithm
+  Double_t          fCrossTalkThres;  // Threshold for eliminating cross talk signal
+  Int_t             fCrossStripApart; // the number of strip that the induced signal is away
+                                      // from the main signal
   
   // Event data, hits etc.
   Float_t*          fADCraw;          // [fNelem] Integral of raw ADC samples

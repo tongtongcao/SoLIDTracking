@@ -41,6 +41,10 @@ class SoLIDGEMTracker : public THaSubDetector{
   Double_t GetVMeanOccu();
   Double_t GetVMeanHitOccu();
   
+  Int_t             KillCrossTalk() const { return fKillCrossTalk; }
+  Double_t          GetCrossTalkThres() const { return fCrossTalkThres; }
+  Int_t             GetCrossStripApart() const { return fCrossStripApart; }
+  
   protected:
   virtual Int_t     ReadDatabase( const TDatime& date );
   virtual Int_t     DefineVariables( EMode mode = kDefine );
@@ -48,12 +52,16 @@ class SoLIDGEMTracker : public THaSubDetector{
   Int_t             fNChamber;     //number of GEM sectors/chambers this tracker has
   Double_t          fTrackerZ;     //the z position of a tracker, indivial chamber may
                                    // has a offset with this z, like the case of SIDIS
-  Int_t          fDoCombineHits;//whether combine all the hits from Chamber for ouput
+  Int_t             fDoCombineHits;//whether combine all the hits from Chamber for ouput
+  Int_t             fKillCrossTalk;
+  Int_t             fCrossStripApart;
+  Double_t          fCrossTalkThres;
   
   Int_t             fTrackerID;   //GEM ID, 0~5 for SIDIS, 0~4 for PVDIS
   TClonesArray*     fHits;   
   std::vector<SoLIDGEMChamber*> fGEMChamber;
   Int_t             fNHits;
+  
   ClassDef(SoLIDGEMTracker,0)  // One Tracker plane coordinate direction
 };
 #endif

@@ -21,6 +21,8 @@
 #pragma link C++ class SoLIDTrack+;
 #pragma link C++ class SoLIDFieldMap+;
 #pragma link C++ class SoLKalTrackFinder+;
+#pragma link C++ class SIDISKalTrackFinder+;
+#pragma link C++ class PVDISKalTrackFinder+;
 #pragma link C++ class SoLKalMatrix+;
 #pragma link C++ class SoLKalTrackSystem+;
 #pragma link C++ class SoLKalTrackState+;

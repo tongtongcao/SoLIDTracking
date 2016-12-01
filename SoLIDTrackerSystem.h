@@ -39,7 +39,7 @@ class SoLIDTrackerSystem : public THaTrackingDetector {
     SoLIDTrackerSystem( const char* name, const char* description = "", THaApparatus* app = 0 );
     SoLIDTrackerSystem() : fECal(0), fTracks(0), fTrackFinder(0) {}
     virtual ~SoLIDTrackerSystem();
-    
+
     virtual Int_t   ReadDatabase( const TDatime& date );
     virtual void    Clear( Option_t* opt="" );
     virtual Int_t   Decode( const THaEvData& );
@@ -53,12 +53,12 @@ class SoLIDTrackerSystem : public THaTrackingDetector {
     virtual Int_t   Begin( THaRunBase* r=0 );
     virtual Int_t   End( THaRunBase* r=0 );
     Double_t GetPhi() const { return fPhi; }//in rad -pi to pi
-    
+
     // Helper functions for getting DAQ module parameters - used by Init
     UInt_t    LoadDAQmodel( THaDetMap::Module* m ) const;
     Double_t  LoadDAQresolution( THaDetMap::Module* m ) const;
     UInt_t    GetDAQnchan( THaDetMap::Module* m ) const;
-    
+
     void    SetSystemID( Int_t i ) { fSystemID = i; }
     Int_t   GetSystemID() const    { return fSystemID; }
     Int_t   GetNTracks()  const    { return fTracks->GetLast() + 1; }
@@ -67,12 +67,12 @@ class SoLIDTrackerSystem : public THaTrackingDetector {
     bool    GetFirstMCTrackEfficiency() const { return fTrackFinder->GetMCTrackEfficiency(0);}
     bool    GetSecondSeedEfficiency() const { return fTrackFinder->GetSeedEfficiency(1);}
     bool    GetSecondMCTrackEfficiency() const { return fTrackFinder->GetMCTrackEfficiency(1);}  
- 
+
     SoLIDGEMTracker * GetTracker(Int_t i) const {
       if (i >= 0 && i<fNTracker ) { return fGEMTracker[i]; }
       else { return 0; }
     }
-     
+
      // Analysis control flags. Set via database.
     enum {
 #ifdef MCDATA
@@ -110,6 +110,7 @@ class SoLIDTrackerSystem : public THaTrackingDetector {
     // Configuration
     TString        fDBPrefix;       // Safe storage for database file name prefix
     THashTable*    fCrateMap;
+    Int_t          fDetConf;        // detector configuration: 0 for SIDIS, 1 for PVDIS
     Int_t          fNTracker;       //total number of GEM detectors in this system SIDIS:6, PVDIS:5
     Double_t       fChi2Cut;        //chi2 cut after fitting the track
     Int_t          fNMaxMissHit;    //maximum number of hits that is allowed in the coarse tracking

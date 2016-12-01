@@ -138,11 +138,9 @@ void SoLKalTrackSystem::CheckTrackStatus()
       fIsGood = kFALSE;
     }
     else if ( mom > 100. || mom < 0. ){
-      //cerr<<"SoLKalTrackSystem::CheckTrackStatus: momentum of the track is out of bound. Momentum: "<<mom<<endl;
       fIsGood = kFALSE;
     }
     else if (theta > 40. ){
-      cout<<"theta angle too large"<<endl;
       fIsGood = kFALSE;
     }
     else if (fNMissingHits > 1){

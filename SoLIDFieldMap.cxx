@@ -24,7 +24,7 @@ void SoLIDFieldMap::LoadFieldMap()
   infile.open("solenoid_CLEOv8.dat");
   if (!infile.is_open()){
     cout<<"cannot open field map file"<<endl;
-    return;
+    exit(0);
   }
   double input[4];
   while(1){

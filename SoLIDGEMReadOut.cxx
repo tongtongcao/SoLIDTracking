@@ -400,6 +400,11 @@ Int_t SoLIDGEMReadOut::Decode( const THaEvData& evdata)
 	num_bg = TMath::Max( num_bg, mc.fContam );
 	// All primary particle hits in the cluster are from the same track
 	//assert( mctrack == 0 || mc.fMCTrack == 0 || mctrack == mc.fMCTrack );
+
+    //fMCTrack > 0 means signal hit, the value is actually the track ID
+    //fMCTrack == 0 means background hit
+    //fMCTrack == -1 means it is induced hit on the readout strip
+
 	if( mctrack == 0 ) {
 	  if( mc.fMCTrack > 0 ) {
 	    // If the cluster contains a signal hit, save its info and be done
@@ -407,11 +412,15 @@ Int_t SoLIDGEMReadOut::Decode( const THaEvData& evdata)
 	    mcpos   = mc.fMCPos;
 	    mctime  = mc.fMCTime;
 	  }
-	  else {
+	  else if (mc.fMCTrack == 0){
 	    // If background hits only, compute position average
 	    mcpos  += mc.fMCPos;
 	    mctime  = TMath::Min( mctime, mc.fMCTime );
-	  }
+	  }else{
+        assert(mc.fMCTrack == -1); //induced strip, cannot be anything else
+        mcpos  += pos; //no other avaiable information for induced strip
+        //no timing information right now for induced strip as well
+      }
 	}
       }
 #endif // MCDATA
@@ -484,7 +493,56 @@ Int_t SoLIDGEMReadOut::Decode( const THaEvData& evdata)
 #endif
   }
 
+  if (fKillCrossTalk) KillCrossTalk();
+
   return 1;
+}
+//_________________________________________________________________________________________
+void SoLIDGEMReadOut::KillCrossTalk()
+{
+    //to identify potential cluster that is induced by a larger neighboring signal
+    //This induction happens when the signal goes into the APV chip
+    //The order of channels inside APV chips does not correspond to order of channel on 
+    //the readout board. So that the induced signal appear on a channel that is about 32 strips
+    //away from the strip that the main signal is on. And the amplitude is about 10% of 
+    //the main signal
+    
+    //array should be ordered by position (in increaseing order)
+    
+    Int_t nhit = GetNhits();
+    for (Int_t i=0; i<nhit; i++){
+        Int_t rIndex = i >= nhit -1 ? i : i+1;
+        Int_t lIndex = i == 0 ? 0 : i-1;
+        
+        SoLIDRawHit* cHit = (SoLIDRawHit*)fHits->At(i);
+        Int_t cid = (cHit->GetPos() - GetStart()) / GetPitch();
+        //look cluster on the right side of the current cluster
+        while (rIndex < nhit){
+            SoLIDRawHit* rHit = (SoLIDRawHit*)fHits->At(rIndex);
+            Int_t did = (rHit->GetPos() - GetStart()) / GetPitch() - cid;
+            assert(did >= 0);
+            
+            if (did > fCrossStripApart) { break; }
+            else if ( did == fCrossStripApart ) {
+                    if (rHit->GetADCsum() < fCrossTalkThres*cHit->GetADCsum())
+                    { rHit->Deactivate(); }
+            }
+            rIndex++;
+        }
+        //do the same for left side
+        while (lIndex >= 0){
+            SoLIDRawHit* lHit = (SoLIDRawHit*)fHits->At(lIndex);
+            Int_t did = (lHit->GetPos() - GetStart()) / GetPitch() - cid;
+            assert(did <= 0);
+            
+            if (did < -1*fCrossStripApart) { break; }
+            else if ( did == -1*fCrossStripApart ) {
+                    if (lHit->GetADCsum() < fCrossTalkThres*cHit->GetADCsum())
+                    { lHit->Deactivate(); }
+            }
+            lIndex--;
+        }
+    }
 }
 //_________________________________________________________________________________________
 THaAnalysisObject::EStatus SoLIDGEMReadOut::Init( const TDatime& date )
@@ -578,6 +636,10 @@ Int_t SoLIDGEMReadOut::ReadDatabase( const TDatime& date )
   fChanMap.clear();
   TString mapping;
   vector<Int_t>* detmap = 0;
+  
+  //TODO: some of these parameter can go to the tracker database, lots of
+  //repititions here
+  
   try{
     detmap = new vector<Int_t>;
     const DBRequest request[] = {
@@ -784,6 +846,13 @@ Int_t SoLIDGEMReadOut::ReadDatabase( const TDatime& date )
 
   UpdateOffset();
   
+  SoLIDGEMChamber *parent = dynamic_cast<SoLIDGEMChamber*>(GetParent());
+  SoLIDGEMTracker *grand_parent = dynamic_cast<SoLIDGEMTracker*>(parent->GetParent());
+  
+  fKillCrossTalk = grand_parent->KillCrossTalk();
+  fCrossTalkThres = grand_parent->GetCrossTalkThres();
+  fCrossStripApart = grand_parent->GetCrossStripApart();
+
   fIsInit = true;
   return kOK;
 
@@ -866,10 +935,10 @@ StripData_t SoLIDGEMReadOut::ChargeDep( const vector<Float_t>& amp )
 
   assert( amp.size() >= 3 );
 
-  //Float_t adcraw;
+  Float_t adcsum;
 
-  //adcraw = delta_t*(amp[0]+amp[1]+amp[2]);
-  
+  adcsum = amp[0]+amp[1]+amp[2];
+
 
   // Weight factors calculated based on the response of the silicon microstrip
   // detector:
@@ -891,34 +960,34 @@ StripData_t SoLIDGEMReadOut::ChargeDep( const vector<Float_t>& amp )
                      amp[1]*w1+amp[0]*w2,
                      amp[2]*w1+amp[1]*w2+amp[0]*w3 };*/
   //Float_t adc;
-  
+
   //this adc value may not be very reliable, we assume that the time sample befre
-  //the trigger start time is 0, but for background, this is not true, and this 
+  //the trigger start time is 0, but for background, this is not true, and this
   //deconvolution algorithm can give rather strange behavior
-  
+
   //adc    = delta_t*(sig[0]+sig[1]+sig[2]);
-  
+
   //I just use the 2nd time sample, becuase it should be at roughly the peak position
-  //and thus has the best signal to background ratio, in this case, we don't need to 
+  //and thus has the best signal to background ratio, in this case, we don't need to
   //deconvolute anymore
-  
+
   //adc = amp[2];
-  
+
   Float_t time   = 0;     // TODO
 
   Bool_t pass;
   // Calculate ratios for 3 samples and check for bad signals
-  
-  if( amp[2] > fADCMin ) {
+
+  if( amp[2] > 0 ) {
     Double_t r1 = amp[0]/amp[2];
     Double_t r2 = amp[1]/amp[2];
     pass = (r1 < 1.0 and r2 < 1.0 and r1 < r2);
     } else
      pass = false;
-  
-
-  return StripData_t(amp[2], amp[2], time, pass);
-
+     
+  //pass = true;
+  //if (amp[0] > amp[1] && amp[1] > amp[2]) pass = false;
+  return StripData_t(amp[2], adcsum, time, pass);
 }
 //_____________________________________________________________________________________
 StripData_t SoLIDGEMReadOut::ChipChargeDep( const vector<Float_t>& amp )
@@ -944,7 +1013,7 @@ StripData_t SoLIDGEMReadOut::ChipChargeDep( const vector<Float_t>& amp )
   Float_t time   = 0;     // TODO
 
   Bool_t pass = true;
-  
+
   return StripData_t(adcraw,adc,time,pass);
 }
 //______________________________________________________________________________________
@@ -1017,26 +1086,26 @@ void SoLIDGEMReadOut::AddStrip( Int_t istrip )
 void SoLIDGEMReadOut::UpdateOffset()
 {
   //by adding this offset when doing the hit clustering, later on when we combine
-  //the 2 hit coordinates, the hit should already in the lab frame. 
-  
+  //the 2 hit coordinates, the hit should already in the lab frame.
+
   //For PVDIS the reference point get from the parent chamber class should be (0,0)
   //because in the PVDIS configuration, if you extend the two lines that parallel to
   //the edge of the chamber, they should have an intersection at (0,0), and this means
   //that all the geometric calculation in the ReadGeometry function in the upper class
   //meke sense
-  
+  //
   //For the SIDIS, however, it is more involved. The Chambers will be move inward in
   //the radial direction, which means the two lines no longer pass (0,0), but somewhere
   //on the other side, say (a,b). All the calculation in the ReadGeometry function still
-  //meke sense, but with respect to this (a,b). 
-  
-  
+  //meke sense, but with respect to this (a,b).
+
+
   fCoorOffset = 0;
   TVector3 trackerCenter = dynamic_cast<SoLIDGEMChamber*>(GetParent())->GetCenterPos();
-  
-  fCoorOffset = trackerCenter.X()*TMath::Cos(fStripAngle) + 
+
+  fCoorOffset = trackerCenter.X()*TMath::Cos(fStripAngle) +
                 trackerCenter.Y()*TMath::Sin(fStripAngle);
-                
+
 }
 //_______________________________________________________________________________
 

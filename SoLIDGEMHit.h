@@ -57,19 +57,22 @@ class SoLIDGEMReadOut;
     SoLIDRawHit( Double_t pos, Double_t adc_sum, UInt_t num_strips, Int_t type,
             Double_t res, SoLIDGEMReadOut* readout ) :
       Hit(pos, res, static_cast<SoLIDGEMReadOut*>(readout)), fADCsum(adc_sum),
-      fSize(num_strips), fType(type) {}
+      fSize(num_strips), fType(type), fStatus(true) {}
     virtual ~SoLIDRawHit() {}
 
     virtual void Print( Option_t* opt="" ) const;
+    void     Deactivate()          { fStatus = false; }
 
     Double_t GetADCsum()     const { return fADCsum; }
     UInt_t   GetSize()       const { return fSize; }
     Int_t    GetType()       const { return fType; }
+    Bool_t   GetStatus()     const { return fStatus; }
 
   protected:
     Double_t fADCsum;      // Sum of ADC values of active strips
     UInt_t   fSize;        // Number of active strips
     Int_t    fType;        // Result code of cluster analysis
+    Bool_t   fStatus;      // true if it is a good hit
 
     ClassDef(SoLIDRawHit,1)     // Hit on an ADC-based readout plane, e.g. GEMs
   };
@@ -113,8 +116,8 @@ class SoLIDGEMReadOut;
     Double_t GetZ() const { return fZ; }
     Double_t GetX() const { return fX; }
     Double_t GetY() const { return fY; }
-    Double_t GetR() const { return fR; }
-    Double_t GetPhi() const { return fPhi; }
+    const Double_t & GetR() const { return fR; }
+    const Double_t & GetPhi() const { return fPhi; }
     Double_t GetQU() const { return dynamic_cast<SoLIDRawHit*>(fUHit)->GetADCsum(); }
     Double_t GetQV() const { return dynamic_cast<SoLIDRawHit*>(fVHit)->GetADCsum(); }
     Double_t GetUPos() const { return dynamic_cast<SoLIDRawHit*>(fUHit)->GetPos(); }
